@@ -10,7 +10,7 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
 
-TOKEN   = os.getenv("DISCORD_TOKEN")
+TOKEN    = os.getenv("DISCORD_TOKEN")
 GUILD_ID = os.getenv("GUILD_ID")
 
 intents = discord.Intents.all()
