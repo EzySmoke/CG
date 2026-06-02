@@ -9,41 +9,40 @@ ACCENT   = discord.Color.from_rgb(88, 101, 242)
 SUCCESS  = discord.Color.from_rgb(40, 167, 69)
 DANGER   = discord.Color.from_rgb(220, 53, 69)
 WARNING  = discord.Color.from_rgb(255, 193, 7)
-NEUTRAL  = discord.Color.from_rgb(52, 58, 64)
 
 HICOM_ROLE_NAME = "HICOM"
 
+# user_id → asyncio.Task
 active_spam_tasks: dict[int, asyncio.Task] = {}
 
 
 async def log_action(bot, action: str, moderator: discord.Member, target, reason: str, extra: str = ""):
     cfg = storage.get_setup()
-    channel_id = cfg.get("mod_log_channel")
-    if not channel_id:
-        return
-    channel = bot.get_channel(channel_id)
-    if not channel:
+    ch  = bot.get_channel(cfg.get("mod_log_channel", 0))
+    if not ch:
         return
     embed = discord.Embed(title=action, color=WARNING, timestamp=datetime.datetime.utcnow())
-    embed.add_field(name="Target",    value=str(target), inline=True)
-    embed.add_field(name="Moderator", value=moderator.mention, inline=True)
+    embed.add_field(name="Target",    value=str(target),                   inline=True)
+    embed.add_field(name="Moderator", value=moderator.mention,             inline=True)
     embed.add_field(name="Reason",    value=reason or "No reason provided", inline=False)
     if extra:
         embed.add_field(name="Details", value=extra, inline=False)
-    await channel.send(embed=embed)
+    await ch.send(embed=embed)
 
 
 class ModerationCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    # ─── General ────────────────────────────────────────────────────────────────
+    # ── General ─────────────────────────────────────────────────────────────────
 
     @app_commands.command(name="ping", description="Check the bot's latency.")
     async def ping(self, interaction: discord.Interaction):
-        latency = round(self.bot.latency * 1000)
-        embed = discord.Embed(description=f"Latency: **{latency}ms**", color=ACCENT)
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                description=f"Latency: **{round(self.bot.latency * 1000)}ms**", color=ACCENT
+            )
+        )
 
     @app_commands.command(name="help", description="View all available commands.")
     async def help(self, interaction: discord.Interaction):
@@ -64,11 +63,12 @@ class ModerationCog(commands.Cog):
             value="`/roll`  `/coinflip`  `/8ball`  `/rate`  `/ship`  `/roast`  `/compliment`  `/meme`  `/joke`  `/choose`",
             inline=False)
         embed.add_field(name="Star Wars",
-            value="`/order66`  `/goodsoldiersfolloworders`  `/rogerroger`\n`/watchthosewristrockets`  `/theattemptonmylife`  `/itsatreasonableprice`  `/hellothere`",
+            value="`/order66`  `/goodsoldiersfolloworders`  `/rogerroger`\n"
+                  "`/watchthosewristrockets`  `/theattemptonmylife`  `/itsatreasonableprice`  `/hellothere`",
             inline=False)
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    # ─── Moderation ─────────────────────────────────────────────────────────────
+    # ── Moderation ───────────────────────────────────────────────────────────────
 
     @app_commands.command(name="purge", description="Delete a number of messages from this channel.")
     @app_commands.describe(amount="Number of messages to delete (1–100)")
@@ -76,8 +76,10 @@ class ModerationCog(commands.Cog):
     async def purge(self, interaction: discord.Interaction, amount: app_commands.Range[int, 1, 100]):
         await interaction.response.defer(ephemeral=True)
         deleted = await interaction.channel.purge(limit=amount)
-        embed = discord.Embed(description=f"Deleted **{len(deleted)}** messages.", color=SUCCESS)
-        await interaction.followup.send(embed=embed, ephemeral=True)
+        await interaction.followup.send(
+            embed=discord.Embed(description=f"Deleted **{len(deleted)}** messages.", color=SUCCESS),
+            ephemeral=True,
+        )
 
     @app_commands.command(name="kick", description="Kick a member from the server.")
     @app_commands.describe(user="User to kick", reason="Reason for the kick")
@@ -121,7 +123,9 @@ class ModerationCog(commands.Cog):
     @app_commands.default_permissions(moderate_members=True)
     async def unmute(self, interaction: discord.Interaction, user: discord.Member):
         await user.timeout(None)
-        embed = discord.Embed(title="Unmute", description=f"{user.mention} has been unmuted.", color=SUCCESS)
+        embed = discord.Embed(
+            title="Unmute", description=f"{user.mention} has been unmuted.", color=SUCCESS
+        )
         embed.set_footer(text=f"Actioned by {interaction.user}")
         await interaction.response.send_message(embed=embed)
         await log_action(self.bot, "Unmute", interaction.user, user, "Unmuted")
@@ -132,8 +136,7 @@ class ModerationCog(commands.Cog):
     async def slowmode(self, interaction: discord.Interaction, seconds: app_commands.Range[int, 0, 21600]):
         await interaction.channel.edit(slowmode_delay=seconds)
         msg = "Slowmode disabled." if seconds == 0 else f"Slowmode set to **{seconds}** seconds."
-        embed = discord.Embed(description=msg, color=ACCENT)
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(embed=discord.Embed(description=msg, color=ACCENT))
 
     @app_commands.command(name="role", description="Add or remove a role from a user.")
     @app_commands.describe(user="Target user", role="Role to add or remove")
@@ -188,9 +191,9 @@ class ModerationCog(commands.Cog):
         loa_data[uid] = {"days": days, "end_date": end_date, "approved_by": interaction.user.id}
         storage.save_loa(loa_data)
         embed = discord.Embed(title="Leave of Absence", color=WARNING)
-        embed.add_field(name="User",     value=user.mention, inline=True)
+        embed.add_field(name="User",     value=user.mention,  inline=True)
         embed.add_field(name="Duration", value=f"{days} days", inline=True)
-        embed.add_field(name="Returns",  value=end_date,     inline=True)
+        embed.add_field(name="Returns",  value=end_date,      inline=True)
         embed.set_footer(text=f"Approved by {interaction.user}")
         await interaction.response.send_message(embed=embed)
 
@@ -203,7 +206,7 @@ class ModerationCog(commands.Cog):
         storage.save_blacklist(bl)
         embed = discord.Embed(title="Blacklist", color=DANGER)
         embed.add_field(name="User",   value=user.mention, inline=True)
-        embed.add_field(name="Reason", value=reason, inline=False)
+        embed.add_field(name="Reason", value=reason,       inline=False)
         embed.set_footer(text=f"Actioned by {interaction.user}")
         await interaction.response.send_message(embed=embed)
         await log_action(self.bot, "Blacklist", interaction.user, user, reason)
@@ -259,7 +262,9 @@ class ModerationCog(commands.Cog):
         overwrite = interaction.channel.overwrites_for(interaction.guild.default_role)
         overwrite.send_messages = None
         await interaction.channel.set_permissions(interaction.guild.default_role, overwrite=overwrite)
-        embed = discord.Embed(title="Channel Unlocked", description="This channel has been unlocked.", color=SUCCESS)
+        embed = discord.Embed(
+            title="Channel Unlocked", description="This channel has been unlocked.", color=SUCCESS
+        )
         embed.set_footer(text=f"Actioned by {interaction.user}")
         await interaction.response.send_message(embed=embed)
 
@@ -268,8 +273,8 @@ class ModerationCog(commands.Cog):
     @app_commands.default_permissions(manage_roles=True)
     async def strike(self, interaction: discord.Interaction, user: discord.Member):
         strikes = storage.get_strikes()
-        uid   = str(user.id)
-        count = strikes.get(uid, {}).get("count", 0) + 1
+        uid     = str(user.id)
+        count   = strikes.get(uid, {}).get("count", 0) + 1
         strikes[uid] = {"count": count, "username": str(user)}
         storage.save_strikes(strikes)
         color = DANGER if count >= 3 else WARNING
@@ -280,80 +285,79 @@ class ModerationCog(commands.Cog):
         await interaction.response.send_message(embed=embed)
         await log_action(self.bot, f"Strike ({count})", interaction.user, user, f"Strike {count} issued")
 
-    # ─── Auto-Role ──────────────────────────────────────────────────────────────
+    # ── Auto-Role ────────────────────────────────────────────────────────────────
 
     @app_commands.command(name="auto-role", description="Set roles to automatically assign when someone joins.")
     @app_commands.describe(
         role="Primary role to auto-assign on join",
-        extra_roles="Additional roles to assign (mention them separated by spaces — optional)",
+        extra_roles="Additional roles — mention them (e.g. @Role1 @Role2) — optional",
     )
     @app_commands.default_permissions(manage_roles=True)
     async def auto_role(self, interaction: discord.Interaction, role: discord.Role, extra_roles: str = ""):
-        cfg = storage.get_setup()
+        cfg      = storage.get_setup()
         role_ids = [role.id]
 
-        if extra_roles.strip():
-            for mention in extra_roles.split():
-                rid = mention.strip("<@&>")
-                if rid.isdigit():
-                    role_ids.append(int(rid))
+        for mention in extra_roles.split():
+            rid = mention.strip("<@&>")
+            if rid.isdigit():
+                role_ids.append(int(rid))
 
         cfg["auto_roles"] = role_ids
         storage.save_setup(cfg)
 
-        role_names = []
+        names = []
         for rid in role_ids:
             r = interaction.guild.get_role(rid)
-            role_names.append(r.name if r else str(rid))
+            names.append(r.name if r else str(rid))
 
-        embed = discord.Embed(
-            title="Auto-Role Configured",
-            description=f"New members will automatically receive: **{', '.join(role_names)}**",
-            color=ACCENT,
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                title="Auto-Role Configured",
+                description=f"New members will automatically receive: **{', '.join(names)}**",
+                color=ACCENT,
+            )
         )
-        await interaction.response.send_message(embed=embed)
 
-    # ─── Mass DM ────────────────────────────────────────────────────────────────
+    # ── Mass DM ──────────────────────────────────────────────────────────────────
 
-    @app_commands.command(name="massdm", description="Spam ping a user in this channel until stopped.")
-    @app_commands.describe(user="User to spam ping")
+    @app_commands.command(name="massdm", description="Privately spam DM a user until stopped by HICOM.")
+    @app_commands.describe(user="User to spam DM")
     @app_commands.default_permissions(manage_messages=True)
     async def massdm(self, interaction: discord.Interaction, user: discord.Member):
         if user.id in active_spam_tasks:
             await interaction.response.send_message(
-                f"**{user}** is already being spammed. Use `/stopdm` to stop it.", ephemeral=True
+                f"**{user}** is already being spammed. Use `/stopdm` to stop.", ephemeral=True
             )
             return
 
         await interaction.response.send_message(
-            f"Spam pinging {user.mention}. Use `/stopdm` with the **HICOM** role to stop it.",
+            f"Now spam DMing {user.mention} privately. Only a member with **{HICOM_ROLE_NAME}** can stop it with `/stopdm`.",
             ephemeral=True,
         )
-
-        channel = interaction.channel
 
         async def spam_loop():
             try:
                 while True:
-                    await channel.send(
-                        f"{user.mention} Getting spam pinged for crying out loud."
-                    )
+                    try:
+                        await user.send("Getting spam pinged for crying out loud.")
+                    except discord.Forbidden:
+                        # User has DMs disabled — stop silently
+                        active_spam_tasks.pop(user.id, None)
+                        return
                     await asyncio.sleep(2)
             except asyncio.CancelledError:
-                pass
-            except Exception:
                 pass
 
         task = asyncio.create_task(spam_loop())
         active_spam_tasks[user.id] = task
 
-    @app_commands.command(name="stopdm", description="Stop spam pinging a user. Requires HICOM role.")
+    @app_commands.command(name="stopdm", description="Stop spam DMing a user. Requires HICOM role.")
     @app_commands.describe(user="User to stop spamming")
     async def stopdm(self, interaction: discord.Interaction, user: discord.Member):
         hicom = discord.utils.get(interaction.guild.roles, name=HICOM_ROLE_NAME)
         if hicom and hicom not in interaction.user.roles:
             await interaction.response.send_message(
-                f"Only members with the **{HICOM_ROLE_NAME}** role can stop spam pings.", ephemeral=True
+                f"Only members with the **{HICOM_ROLE_NAME}** role can stop spam DMs.", ephemeral=True
             )
             return
 
@@ -365,11 +369,20 @@ class ModerationCog(commands.Cog):
             return
 
         task.cancel()
-        embed = discord.Embed(
-            description=f"Stopped spam pinging {user.mention}.",
-            color=SUCCESS,
+
+        # Notify the target via DM
+        try:
+            await user.send(
+                f"You're lucky that **{interaction.user.display_name}** made me stop spam DMing you."
+            )
+        except discord.Forbidden:
+            pass
+
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                description=f"Stopped spam DMing {user.mention}.", color=SUCCESS
+            )
         )
-        await interaction.response.send_message(embed=embed)
 
 
 async def setup(bot):

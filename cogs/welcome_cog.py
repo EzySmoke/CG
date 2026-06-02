@@ -43,11 +43,11 @@ class WelcomeCog(commands.Cog):
         # Auto-role assignment
         auto_role_ids = cfg.get("auto_roles", [])
         if auto_role_ids:
-            roles_to_add = []
-            for rid in auto_role_ids:
-                role = member.guild.get_role(rid)
-                if role:
-                    roles_to_add.append(role)
+            roles_to_add = [
+                member.guild.get_role(rid)
+                for rid in auto_role_ids
+                if member.guild.get_role(rid)
+            ]
             if roles_to_add:
                 try:
                     await member.add_roles(*roles_to_add, reason="Auto-role on join")

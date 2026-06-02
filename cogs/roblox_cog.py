@@ -5,8 +5,8 @@ import aiohttp
 import os
 import datetime
 
-ROBLOX_COOKIE = os.getenv("ROBLOX_COOKIE", "")
-MAIN_GROUP_ID = os.getenv("ROBLOX_MAIN_GROUP_ID", "")
+ROBLOX_COOKIE    = os.getenv("ROBLOX_COOKIE", "")
+MAIN_GROUP_ID    = os.getenv("ROBLOX_MAIN_GROUP_ID", "")
 ALLIED_GROUP_IDS = [g.strip() for g in os.getenv("ROBLOX_ALLIED_GROUP_IDS", "").split(",") if g.strip()]
 ENEMY_GROUP_IDS  = [g.strip() for g in os.getenv("ROBLOX_ENEMY_GROUP_IDS",  "").split(",") if g.strip()]
 
@@ -42,7 +42,7 @@ async def get_badge_count(session, user_id):
         url = f"https://badges.roblox.com/v1/users/{user_id}/badges?limit=100&sortOrder=Asc"
         if cursor:
             url += f"&cursor={cursor}"
-        data = await roblox_get(session, url)
+        data   = await roblox_get(session, url)
         total += len(data.get("data", []))
         cursor = data.get("nextPageCursor")
         if not cursor:
@@ -56,20 +56,12 @@ async def get_gamepass_count(session, user_id):
         url = f"https://inventory.roblox.com/v1/users/{user_id}/assets/gamepasses?limit=100"
         if cursor:
             url += f"&cursor={cursor}"
-        data = await roblox_get(session, url)
+        data   = await roblox_get(session, url)
         total += len(data.get("data", []))
         cursor = data.get("nextPageCursor")
         if not cursor:
             break
     return total
-
-
-async def get_group_name(session, group_id):
-    try:
-        data = await roblox_get(session, f"https://groups.roblox.com/v1/groups/{group_id}")
-        return data.get("name", f"Group {group_id}")
-    except Exception:
-        return f"Group {group_id}"
 
 
 class RobloxCog(commands.Cog):
@@ -93,7 +85,7 @@ class RobloxCog(commands.Cog):
                 )
                 return
 
-            user_id = user_data["id"]
+            user_id    = user_data["id"]
             info       = await roblox_get(session, f"https://users.roblox.com/v1/users/{user_id}")
             groups_raw = await roblox_get(session, f"https://groups.roblox.com/v1/users/{user_id}/groups/roles")
             friends    = (await roblox_get(session, f"https://friends.roblox.com/v1/users/{user_id}/friends/count")).get("count", 0)
@@ -102,7 +94,7 @@ class RobloxCog(commands.Cog):
             badges     = await get_badge_count(session, user_id)
             gamepasses = await get_gamepass_count(session, user_id)
 
-            groups = groups_raw.get("data", [])
+            groups        = groups_raw.get("data", [])
             user_group_map = {str(g["group"]["id"]): g for g in groups}
 
             created_raw = info.get("created", "")
@@ -133,7 +125,6 @@ class RobloxCog(commands.Cog):
                 color=color,
                 timestamp=datetime.datetime.utcnow(),
             )
-
             embed.add_field(
                 name="Profile",
                 value=(
@@ -145,7 +136,6 @@ class RobloxCog(commands.Cog):
                 ),
                 inline=False,
             )
-
             embed.add_field(
                 name="Statistics",
                 value="\n".join([
@@ -161,7 +151,6 @@ class RobloxCog(commands.Cog):
                 inline=False,
             )
 
-            # Main group
             if MAIN_GROUP_ID and MAIN_GROUP_ID in user_group_map:
                 g = user_group_map[MAIN_GROUP_ID]
                 main_value = f"**{g['group']['name']}** — {g['role']['name']}"
@@ -169,7 +158,6 @@ class RobloxCog(commands.Cog):
                 main_value = "-"
             embed.add_field(name="Main Group", value=main_value, inline=False)
 
-            # Allied (divisional) groups — only show ones the user is in
             if ALLIED_GROUP_IDS:
                 ally_lines = [
                     f"**{user_group_map[gid]['group']['name']}** — {user_group_map[gid]['role']['name']}"
@@ -177,7 +165,6 @@ class RobloxCog(commands.Cog):
                 ]
                 embed.add_field(name="Divisional Groups", value="\n".join(ally_lines) if ally_lines else "-", inline=False)
 
-            # Enemy groups — only show ones the user is actually in
             if ENEMY_GROUP_IDS:
                 enemy_lines = [
                     f"**{user_group_map[gid]['group']['name']}** — {user_group_map[gid]['role']['name']}"

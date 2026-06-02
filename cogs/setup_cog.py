@@ -8,14 +8,21 @@ ACCENT = discord.Color.from_rgb(88, 101, 242)
 
 class AddMedalModal(discord.ui.Modal, title="Add Medal"):
     medal_name = discord.ui.TextInput(label="Medal Name", placeholder="e.g. Medal of Valor", max_length=64)
-    medal_description = discord.ui.TextInput(label="Description", placeholder="What this medal is awarded for", style=discord.TextStyle.paragraph, max_length=256)
+    medal_description = discord.ui.TextInput(
+        label="Description",
+        placeholder="What this medal is awarded for",
+        style=discord.TextStyle.paragraph,
+        max_length=256,
+    )
 
     async def on_submit(self, interaction: discord.Interaction):
         medals = storage.get_medals()
         key = self.medal_name.value.lower().replace(" ", "_")
         medals[key] = {"name": self.medal_name.value, "description": self.medal_description.value}
         storage.save_medals(medals)
-        await interaction.response.send_message(f"Medal **{self.medal_name.value}** has been added.", ephemeral=True)
+        await interaction.response.send_message(
+            f"Medal **{self.medal_name.value}** has been added.", ephemeral=True
+        )
 
 
 class RemoveMedalSelect(discord.ui.Select):
@@ -24,8 +31,8 @@ class RemoveMedalSelect(discord.ui.Select):
         super().__init__(placeholder="Select a medal to remove…", options=options[:25])
 
     async def callback(self, interaction: discord.Interaction):
-        medals = storage.get_medals()
-        removed = medals.pop(self.values[0], None)
+        medals   = storage.get_medals()
+        removed  = medals.pop(self.values[0], None)
         storage.save_medals(medals)
         name = removed["name"] if removed else self.values[0]
         await interaction.response.send_message(f"Medal **{name}** removed.", ephemeral=True)
@@ -33,7 +40,8 @@ class RemoveMedalSelect(discord.ui.Select):
 
 async def _set_channel_flow(interaction: discord.Interaction, label: str, key: str):
     await interaction.response.send_message(
-        f"Mention the channel to use as the **{label}** channel.\nType `cancel` to skip.", ephemeral=True
+        f"Mention the channel to use as the **{label}** channel. Type `cancel` to skip.",
+        ephemeral=True,
     )
 
     def check(m):
@@ -45,7 +53,7 @@ async def _set_channel_flow(interaction: discord.Interaction, label: str, key: s
             await msg.delete()
             return
         if msg.channel_mentions:
-            ch = msg.channel_mentions[0]
+            ch  = msg.channel_mentions[0]
             cfg = storage.get_setup()
             cfg[key] = ch.id
             storage.save_setup(cfg)
@@ -107,14 +115,14 @@ def build_setup_embed(cfg: dict, guild: discord.Guild) -> discord.Embed:
             return c.mention if c else f"<#{cid}>"
         return "Not configured"
 
-    embed.add_field(name="Welcome Channel",    value=ch("welcome_channel"),   inline=True)
-    embed.add_field(name="Mod Log Channel",    value=ch("mod_log_channel"),   inline=True)
-    embed.add_field(name="Chat Log Channel",   value=ch("chat_log_channel"),  inline=True)
-    embed.add_field(name="Event Log Channel",  value=ch("event_log_channel"), inline=True)
-    embed.add_field(name="CG Comms Channel",   value=ch("cg_comms_channel"),  inline=True)
+    embed.add_field(name="Welcome Channel",   value=ch("welcome_channel"),   inline=True)
+    embed.add_field(name="Mod Log Channel",   value=ch("mod_log_channel"),   inline=True)
+    embed.add_field(name="Chat Log Channel",  value=ch("chat_log_channel"),  inline=True)
+    embed.add_field(name="Event Log Channel", value=ch("event_log_channel"), inline=True)
+    embed.add_field(name="CG Comms Channel",  value=ch("cg_comms_channel"),  inline=True)
 
-    medals = storage.get_medals()
-    medal_list = "\n".join(f"**{v['name']}** — {v['description']}" for v in medals.values()) or "None configured"
+    medals      = storage.get_medals()
+    medal_list  = "\n".join(f"**{v['name']}** — {v['description']}" for v in medals.values()) or "None configured"
     embed.add_field(name="Medals", value=medal_list[:1024], inline=False)
     embed.set_footer(text="Use the buttons below to configure each section.")
     return embed
@@ -127,14 +135,14 @@ class SetupCog(commands.Cog):
     @app_commands.command(name="setup", description="Configure the bot — channels, medals, and more.")
     @app_commands.default_permissions(administrator=True)
     async def setup(self, interaction: discord.Interaction):
-        cfg = storage.get_setup()
+        cfg   = storage.get_setup()
         embed = build_setup_embed(cfg, interaction.guild)
         await interaction.response.send_message(embed=embed, view=SetupView(), ephemeral=True)
 
     @app_commands.command(name="editsetup", description="Edit the current bot configuration.")
     @app_commands.default_permissions(administrator=True)
     async def editsetup(self, interaction: discord.Interaction):
-        cfg = storage.get_setup()
+        cfg   = storage.get_setup()
         embed = build_setup_embed(cfg, interaction.guild)
         embed.title = "Edit Configuration"
         await interaction.response.send_message(embed=embed, view=SetupView(), ephemeral=True)
@@ -143,7 +151,9 @@ class SetupCog(commands.Cog):
     async def medals(self, interaction: discord.Interaction):
         medals = storage.get_medals()
         if not medals:
-            await interaction.response.send_message("No medals configured yet. Use `/setup` to add some.", ephemeral=True)
+            await interaction.response.send_message(
+                "No medals configured yet. Use `/setup` to add some.", ephemeral=True
+            )
             return
         embed = discord.Embed(title="Medals", color=ACCENT)
         for v in medals.values():

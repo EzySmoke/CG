@@ -51,27 +51,31 @@ class FunCog(commands.Cog):
     @app_commands.describe(sides="Number of sides (default: 6)")
     async def roll(self, interaction: discord.Interaction, sides: int = 6):
         await interaction.response.send_message(
-            embed=discord.Embed(description=f"You rolled **{random.randint(1, sides)}** on a d{sides}.", color=ACCENT)
+            embed=discord.Embed(
+                description=f"You rolled **{random.randint(1, sides)}** on a d{sides}.", color=ACCENT
+            )
         )
 
     @app_commands.command(name="coinflip", description="Flip a coin.")
     async def coinflip(self, interaction: discord.Interaction):
         await interaction.response.send_message(
-            embed=discord.Embed(description=f"The coin landed on **{random.choice(['Heads', 'Tails'])}**.", color=ACCENT)
+            embed=discord.Embed(
+                description=f"The coin landed on **{random.choice(['Heads', 'Tails'])}**.", color=ACCENT
+            )
         )
 
     @app_commands.command(name="8ball", description="Ask the magic 8-ball a question.")
     @app_commands.describe(question="Your question")
     async def eightball(self, interaction: discord.Interaction, question: str):
         embed = discord.Embed(color=ACCENT)
-        embed.add_field(name="Question", value=question,                   inline=False)
-        embed.add_field(name="Answer",   value=random.choice(EIGHT_BALL), inline=False)
+        embed.add_field(name="Question", value=question,                    inline=False)
+        embed.add_field(name="Answer",   value=random.choice(EIGHT_BALL),  inline=False)
         await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="rate", description="Rate something out of 10.")
     @app_commands.describe(thing="What to rate")
     async def rate(self, interaction: discord.Interaction, thing: str):
-        r = random.randint(0, 10)
+        r   = random.randint(0, 10)
         bar = "█" * r + "░" * (10 - r)
         embed = discord.Embed(color=ACCENT)
         embed.add_field(name="Subject", value=thing,                    inline=False)
@@ -93,14 +97,18 @@ class FunCog(commands.Cog):
     @app_commands.describe(user="User to roast")
     async def roast(self, interaction: discord.Interaction, user: discord.Member):
         await interaction.response.send_message(
-            embed=discord.Embed(description=f"{user.mention}, {random.choice(ROASTS)}", color=ACCENT)
+            embed=discord.Embed(
+                description=f"{user.mention}, {random.choice(ROASTS)}", color=ACCENT
+            )
         )
 
     @app_commands.command(name="compliment", description="Compliment a user.")
     @app_commands.describe(user="User to compliment")
     async def compliment(self, interaction: discord.Interaction, user: discord.Member):
         await interaction.response.send_message(
-            embed=discord.Embed(description=f"{user.mention}, {random.choice(COMPLIMENTS)}", color=ACCENT)
+            embed=discord.Embed(
+                description=f"{user.mention}, {random.choice(COMPLIMENTS)}", color=ACCENT
+            )
         )
 
     @app_commands.command(name="meme", description="Get a random meme.")
@@ -136,10 +144,14 @@ class FunCog(commands.Cog):
     async def choose(self, interaction: discord.Interaction, options: str):
         choices = [o.strip() for o in options.split(",") if o.strip()]
         if len(choices) < 2:
-            await interaction.response.send_message("Provide at least 2 options separated by commas.", ephemeral=True)
+            await interaction.response.send_message(
+                "Provide at least 2 options separated by commas.", ephemeral=True
+            )
             return
         await interaction.response.send_message(
-            embed=discord.Embed(description=f"I choose: **{random.choice(choices)}**", color=ACCENT)
+            embed=discord.Embed(
+                description=f"I choose: **{random.choice(choices)}**", color=ACCENT
+            )
         )
 
 
