@@ -13,6 +13,7 @@ FILES = {
     "aos":            os.path.join(DATA_DIR, "aos.json"),
     "blacklist":      os.path.join(DATA_DIR, "blacklist.json"),
     "loa":            os.path.join(DATA_DIR, "loa.json"),
+    "gwarns":         os.path.join(DATA_DIR, "gwarns.json"),
 }
 
 
@@ -46,3 +47,5 @@ def get_blacklist() -> dict:       return _load("blacklist")
 def save_blacklist(data: dict):    _save("blacklist", data)
 def get_loa() -> dict:             return _load("loa")
 def save_loa(data: dict):          _save("loa", data)
+def get_gwarns() -> dict:          return _load("gwarns")
+def save_gwarns(data: dict):       _save("gwarns", data)
