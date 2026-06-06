@@ -11,11 +11,16 @@ DANGER  = discord.Color.from_rgb(220, 53, 69)
 WARNING = discord.Color.from_rgb(255, 193, 7)
 
 GUARD_ROLE_ID   = 1493681227532730501
+CLEAR_ROLE_ID   = 1511493440041652224
 WARN_EXPIRY_HRS = 1
 
 
 def _has_guard_role(interaction: discord.Interaction) -> bool:
     return any(r.id == GUARD_ROLE_ID for r in interaction.user.roles)
+
+
+def _has_clear_role(interaction: discord.Interaction) -> bool:
+    return any(r.id == CLEAR_ROLE_ID for r in interaction.user.roles)
 
 
 def _now_iso() -> str:
@@ -171,6 +176,48 @@ class GuardWarnCog(commands.Cog):
                     inline=False,
                 )
 
+        await interaction.response.send_message(embed=embed)
+
+
+    @app_commands.command(name="gclear", description="Clear all active warnings for a Roblox user.")
+    @app_commands.describe(roblox_user="Roblox username to clear warnings for")
+    async def gclear(self, interaction: discord.Interaction, roblox_user: str):
+        if not _has_clear_role(interaction):
+            await interaction.response.send_message(
+                embed=discord.Embed(
+                    description="You do not have permission to use this command.",
+                    color=DANGER,
+                ),
+                ephemeral=True,
+            )
+            return
+
+        warns = storage.get_gwarns()
+        key   = roblox_user.lower()
+        active_before = [w for w in warns.get(key, []) if _is_active(w)]
+
+        if not active_before:
+            await interaction.response.send_message(
+                embed=discord.Embed(
+                    description=f"**{roblox_user}** has no active warnings to clear.",
+                    color=WARNING,
+                ),
+                ephemeral=True,
+            )
+            return
+
+        warns[key] = [w for w in warns.get(key, []) if not _is_active(w)]
+        storage.save_gwarns(warns)
+
+        embed = discord.Embed(
+            title="Warnings Cleared",
+            description=f"Cleared **{len(active_before)}** active warning(s) for **{roblox_user}**.",
+            color=SUCCESS,
+            timestamp=datetime.datetime.utcnow(),
+        )
+        embed.set_footer(
+            text=f"Cleared by {interaction.user} on {datetime.datetime.utcnow().strftime('%b %d, %Y at %H:%M UTC')}"
+        )
         await interaction.response.send_message(embed=embed)
 
 
