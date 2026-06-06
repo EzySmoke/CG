@@ -24,6 +24,7 @@ COGS = [
     "cogs.roblox_cog",
     "cogs.fun_cog",
     "cogs.starwars_cog",
+    "cogs.guard_warn_cog",
 ]
 
 
