@@ -1,6 +1,7 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
+from typing import Literal
 from utils import storage
 import datetime
 
@@ -11,12 +12,6 @@ WARNING = discord.Color.from_rgb(255, 193, 7)
 
 GUARD_ROLE_ID   = 1493681227532730501
 WARN_EXPIRY_HRS = 1
-
-WARNING_CHOICES = [
-    app_commands.Choice(name="1/3", value="1/3"),
-    app_commands.Choice(name="2/3", value="2/3"),
-    app_commands.Choice(name="3/3", value="3/3"),
-]
 
 
 def _has_guard_role(interaction: discord.Interaction) -> bool:
@@ -52,15 +47,14 @@ class GuardWarnCog(commands.Cog):
     @app_commands.describe(
         roblox_user="Roblox username to warn",
         reason="Reason for the warning",
-        warning="Warning level (1/3, 2/3, or 3/3)",
+        warning="Warning level",
     )
-    @app_commands.choices(warning=WARNING_CHOICES)
     async def gwarn(
         self,
         interaction: discord.Interaction,
         roblox_user: str,
         reason: str,
-        warning: app_commands.Choice[str],
+        warning: Literal["1/3", "2/3", "3/3"],
     ):
         if not _has_guard_role(interaction):
             await interaction.response.send_message(
@@ -76,13 +70,13 @@ class GuardWarnCog(commands.Cog):
         expires_at = _expires_iso()
 
         entry = {
-            "roblox_user": roblox_user,
-            "reason":      reason,
-            "warning":     warning.value,
-            "issued_by":   str(interaction.user),
+            "roblox_user":  roblox_user,
+            "reason":       reason,
+            "warning":      warning,
+            "issued_by":    str(interaction.user),
             "issued_by_id": interaction.user.id,
-            "issued_at":   issued_at,
-            "expires_at":  expires_at,
+            "issued_at":    issued_at,
+            "expires_at":   expires_at,
         }
 
         warns = storage.get_gwarns()
@@ -90,29 +84,29 @@ class GuardWarnCog(commands.Cog):
         warns.setdefault(key, []).append(entry)
         storage.save_gwarns(warns)
 
-        color = DANGER if warning.value == "3/3" else WARNING
+        color = DANGER if warning == "3/3" else WARNING
 
         embed = discord.Embed(
-            title=f"Guard Warning Issued — {warning.value}",
+            title=f"Guard Warning Issued — {warning}",
             color=color,
             timestamp=datetime.datetime.utcnow(),
         )
-        embed.add_field(name="Roblox User", value=roblox_user,    inline=True)
-        embed.add_field(name="Warning",     value=warning.value,  inline=True)
-        embed.add_field(name="Reason",      value=reason,         inline=False)
+        embed.add_field(name="Roblox User", value=roblox_user,  inline=True)
+        embed.add_field(name="Warning",     value=warning,      inline=True)
+        embed.add_field(name="Reason",      value=reason,       inline=False)
         embed.add_field(name="Issued By",   value=f"{interaction.user.mention} (`{interaction.user}`)", inline=True)
         embed.add_field(name="Issued At",   value=_fmt_dt(issued_at),  inline=True)
         embed.add_field(name="Expires At",  value=_fmt_dt(expires_at), inline=True)
         embed.set_footer(text="Warning expires in 1 hour")
         await interaction.response.send_message(embed=embed)
 
-    @app_commands.command(name="gcheck", description="Check recent active warnings for a Roblox user.")
+    @app_commands.command(name="gcheck", description="Check active warnings for a Roblox user.")
     @app_commands.describe(roblox_user="Roblox username to check")
     async def gcheck(self, interaction: discord.Interaction, roblox_user: str):
-        warns = storage.get_gwarns()
-        key   = roblox_user.lower()
+        warns     = storage.get_gwarns()
+        key       = roblox_user.lower()
         all_warns = warns.get(key, [])
-        active = [w for w in all_warns if _is_active(w)]
+        active    = [w for w in all_warns if _is_active(w)]
 
         embed = discord.Embed(
             title=f"Guard Warnings — {roblox_user}",
@@ -141,15 +135,14 @@ class GuardWarnCog(commands.Cog):
 
         await interaction.response.send_message(embed=embed)
 
-    @app_commands.command(name="gwarns", description="Show all active guard warnings (leaderboard).")
+    @app_commands.command(name="gwarns", description="Show all active guard warnings.")
     async def gwarns(self, interaction: discord.Interaction):
-        warns  = storage.get_gwarns()
-        rows   = []
+        warns = storage.get_gwarns()
+        rows  = []
 
-        for key, entries in warns.items():
-            active = [w for w in entries if _is_active(w)]
-            if active:
-                for w in active:
+        for entries in warns.values():
+            for w in entries:
+                if _is_active(w):
                     rows.append(w)
 
         rows.sort(key=lambda w: w["issued_at"], reverse=True)
