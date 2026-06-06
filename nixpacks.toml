@@ -2,7 +2,10 @@
 nixPkgs = ["python311", "python311Packages.pip", "dejavu_fonts", "freefont_ttf"]
 
 [phases.install]
-cmds = ["pip install -r requirements.txt"]
+cmds = [
+    "python3 -m venv /opt/venv",
+    "/opt/venv/bin/pip install -r requirements.txt"
+]
 
 [start]
-cmd = "python3 main.py"
+cmd = "/opt/venv/bin/python main.py"
