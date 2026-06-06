@@ -1,2 +1,2 @@
 [phases.setup]
-nixPkgs = ["dejavu_fonts", "freefont_ttf"]
+nixPkgs = ["python3", "dejavu_fonts", "freefont_ttf"]
